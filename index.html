@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shopping List App v1.1 PWA</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f6feb">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg:#f4f7fb; --panel:#ffffff; --ink:#172033; --muted:#667085; --line:#d8dee9;
+    --accent:#1f6feb; --accent2:#e7f0ff; --danger:#b42318; --ok:#087443;
+    --shadow:0 10px 30px rgba(16,24,40,.10); --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#0b3b75,#1f6feb);color:white;padding:14px 16px;box-shadow:var(--shadow)}
+  header h1{margin:0;font-size:1.25rem;letter-spacing:.2px}
+  header .sub{opacity:.9;font-size:.86rem;margin-top:2px}
+  .wrap{max-width:1050px;margin:0 auto;padding:14px;display:grid;grid-template-columns:310px 1fr;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card h2{font-size:1rem;margin:0;padding:12px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .section{padding:12px 14px}
+  .row{display:flex;gap:8px;align-items:center}
+  input,button,select{font:inherit}
+  input[type=text]{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;color:var(--ink)}
+  button{border:0;border-radius:12px;padding:11px 13px;background:var(--accent);color:white;font-weight:700;cursor:pointer;min-height:42px}
+  button.secondary{background:#eef2f7;color:#1d2939;border:1px solid var(--line)}
+  button.danger{background:var(--danger)}
+  button.ok{background:var(--ok)}
+  button.small{padding:8px 10px;min-height:34px;font-size:.9rem}
+  button:active{transform:translateY(1px)}
+  .list-buttons{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .list-btn{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:#f8fafc;color:#172033;border:1px solid var(--line);font-weight:700}
+  .list-btn.active{background:var(--accent2);border-color:#99c2ff;color:#063b78}
+  .badge{font-size:.75rem;color:#475467;background:white;border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fbfcfe;padding:10px 14px}
+  .title-block{min-width:180px}
+  .title-block h2{border:0;background:transparent;padding:0;margin:0;font-size:1.08rem}
+  .counts{font-size:.85rem;color:var(--muted);margin-top:2px}
+  .item-form{padding:12px 14px;border-bottom:1px solid var(--line)}
+  ul{list-style:none;margin:0;padding:0}
+  li.item{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:11px 14px;border-bottom:1px solid #edf1f7}
+  li.item:last-child{border-bottom:0}
+  .check{width:28px;height:28px;accent-color:var(--ok)}
+  .item-text{font-size:1rem;word-break:break-word}
+  .item.done .item-text{text-decoration:line-through;color:#98a2b3}
+  .item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .empty{padding:32px 18px;text-align:center;color:var(--muted)}
+  .footer-actions{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+  .note{font-size:.82rem;color:var(--muted);line-height:1.35;margin-top:10px}
+  .file{display:none}
+  @media print{
+    header,.wrap aside,.item-form,.toolbar button,.footer-actions,.item-actions{display:none!important}
+    body{background:white;color:#000}
+    .wrap{display:block;max-width:none;padding:0}
+    .card{box-shadow:none;border:0}
+    .toolbar{display:block!important;border:0;background:white;padding:0 0 12px 0}
+    li.item{grid-template-columns:32px 1fr;border-bottom:1px solid #ddd;padding:8px 0}
+    .check{width:20px;height:20px}
+    .item.done .item-text{text-decoration:line-through;color:#555}
+  }
+  @media(max-width:760px){
+    .wrap{grid-template-columns:1fr;padding:10px;gap:10px}
+    header h1{font-size:1.12rem}
+    .toolbar{align-items:flex-start}
+    li.item{grid-template-columns:38px 1fr;}
+    .item-actions{grid-column:2;justify-content:flex-start}
+    button{width:auto}
+    .row.stack{flex-direction:column;align-items:stretch}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Shopping List App v1.1 PWA</h1>
+  <div class="sub">Create lists, add items, and tick items on or off</div>
+</header>
+<main class="wrap">
+  <aside class="card">
+    <h2>Shopping Lists</h2>
+    <div class="section">
+      <div class="row stack">
+        <input id="newListName" type="text" placeholder="New list name, e.g. Groceries">
+        <button id="addListBtn">Add List</button>
+      </div>
+      <div id="listButtons" class="list-buttons"></div>
+      <div class="note">Your lists are saved automatically on this device/browser.</div>
+    </div>
+    <div class="footer-actions">
+      <button id="exportBtn" class="secondary small">Save All JSON</button>
+      <button id="saveCurrentBtn" class="secondary small">Save Current List</button>
+      <button id="importBtn" class="secondary small">Load JSON</button>
+      <input id="importFile" class="file" type="file" accept="application/json,.json">
+      <button id="clearAllBtn" class="danger small">Clear All</button>
+    </div>
+  </aside>
+
+  <section class="card">
+    <div class="toolbar">
+      <div class="title-block">
+        <h2 id="currentTitle">No List Selected</h2>
+        <div id="currentCounts" class="counts"></div>
+      </div>
+      <div class="row">
+        <button id="renameListBtn" class="secondary small">Rename</button>
+        <button id="deleteListBtn" class="danger small">Delete List</button>
+      </div>
+    </div>
+    <div class="item-form">
+      <div class="row stack">
+        <input id="newItemText" type="text" placeholder="Add item, e.g. Milk">
+        <button id="addItemBtn" class="ok">Add Item</button>
+      </div>
+    </div>
+    <ul id="items"></ul>
+    <div class="footer-actions">
+      <button id="untickAllBtn" class="secondary small">Untick All</button>
+      <button id="deleteTickedBtn" class="danger small">Delete Ticked</button>
+      <button id="sortBtn" class="secondary small">Sort A-Z</button>
+      <button id="printBtn" class="ok small">Print List</button>
+    </div>
+  </section>
+</main>
+<script>
+(function(){
+  const STORAGE_KEY = 'shoppingListApp_v1';
+  const $ = id => document.getElementById(id);
+  let state = loadState();
+
+  function uid(){ return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+  function defaultState(){
+    const id = uid();
+    return { activeListId:id, lists:[{ id, name:'Groceries', items:[
+      {id:uid(), text:'Milk', done:false}, {id:uid(), text:'Bread', done:false}, {id:uid(), text:'Eggs', done:true}
+    ]}]};
+  }
+  function loadState(){
+    try{ const raw=localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : defaultState(); }
+    catch(e){ return defaultState(); }
+  }
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function activeList(){ return state.lists.find(l=>l.id===state.activeListId) || state.lists[0] || null; }
+  function escapeHtml(s){ return String(s).replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+  function render(){
+    if(!state.lists.length){
+      state.activeListId=null;
+    } else if(!activeList()) state.activeListId=state.lists[0].id;
+    renderLists(); renderItems(); save();
+  }
+  function renderLists(){
+    const box=$('listButtons'); box.innerHTML='';
+    state.lists.forEach(list=>{
+      const total=list.items.length, done=list.items.filter(i=>i.done).length;
+      const btn=document.createElement('button');
+      btn.className='list-btn' + (list.id===state.activeListId?' active':'');
+      btn.innerHTML=`<span>${escapeHtml(list.name)}</span><span class="badge">${done}/${total}</span>`;
+      btn.onclick=()=>{state.activeListId=list.id; render();};
+      box.appendChild(btn);
+    });
+  }
+  function renderItems(){
+    const list=activeList();
+    const title=$('currentTitle'), counts=$('currentCounts'), ul=$('items');
+    ul.innerHTML='';
+    const hasList=!!list;
+    $('newItemText').disabled=!hasList; $('addItemBtn').disabled=!hasList;
+    $('renameListBtn').disabled=!hasList; $('deleteListBtn').disabled=!hasList;
+    $('untickAllBtn').disabled=!hasList; $('deleteTickedBtn').disabled=!hasList; $('sortBtn').disabled=!hasList;
+    if(!list){
+      title.textContent='No List Selected'; counts.textContent='Create a list to begin.';
+      ul.innerHTML='<div class="empty">No shopping list yet.</div>'; return;
+    }
+    title.textContent=list.name;
+    const total=list.items.length, done=list.items.filter(i=>i.done).length;
+    counts.textContent=`${total} item${total!==1?'s':''} • ${done} ticked • ${total-done} remaining`;
+    if(!list.items.length){ ul.innerHTML='<div class="empty">No items in this list. Add one above.</div>'; return; }
+    list.items.forEach(item=>{
+      const li=document.createElement('li'); li.className='item'+(item.done?' done':'');
+      li.innerHTML=`
+        <input class="check" type="checkbox" ${item.done?'checked':''} aria-label="Toggle item">
+        <div class="item-text">${escapeHtml(item.text)}</div>
+        <div class="item-actions">
+          <button class="secondary small edit">Edit</button>
+          <button class="danger small del">Delete</button>
+        </div>`;
+      li.querySelector('.check').onchange=e=>{item.done=e.target.checked; render();};
+      li.querySelector('.edit').onclick=()=>{
+        const v=prompt('Edit item:', item.text);
+        if(v!==null && v.trim()){ item.text=v.trim(); render(); }
+      };
+      li.querySelector('.del').onclick=()=>{ list.items=list.items.filter(i=>i.id!==item.id); render(); };
+      ul.appendChild(li);
+    });
+  }
+
+  $('addListBtn').onclick=()=>{
+    const name=$('newListName').value.trim(); if(!name) return;
+    const id=uid(); state.lists.push({id,name,items:[]}); state.activeListId=id; $('newListName').value=''; render();
+  };
+  $('newListName').addEventListener('keydown', e=>{ if(e.key==='Enter') $('addListBtn').click(); });
+  $('addItemBtn').onclick=()=>{
+    const list=activeList(); const text=$('newItemText').value.trim(); if(!list||!text) return;
+    list.items.push({id:uid(), text, done:false}); $('newItemText').value=''; $('newItemText').focus(); render();
+  };
+  $('newItemText').addEventListener('keydown', e=>{ if(e.key==='Enter') $('addItemBtn').click(); });
+  $('renameListBtn').onclick=()=>{
+    const list=activeList(); if(!list) return; const v=prompt('Rename list:', list.name);
+    if(v!==null && v.trim()){ list.name=v.trim(); render(); }
+  };
+  $('deleteListBtn').onclick=()=>{
+    const list=activeList(); if(!list) return;
+    if(confirm(`Delete the list "${list.name}"?`)){
+      state.lists=state.lists.filter(l=>l.id!==list.id); state.activeListId=state.lists[0]?.id||null; render();
+    }
+  };
+  $('untickAllBtn').onclick=()=>{ const list=activeList(); if(!list) return; list.items.forEach(i=>i.done=false); render(); };
+  $('deleteTickedBtn').onclick=()=>{ const list=activeList(); if(!list) return; list.items=list.items.filter(i=>!i.done); render(); };
+  $('sortBtn').onclick=()=>{ const list=activeList(); if(!list) return; list.items.sort((a,b)=>a.text.localeCompare(b.text)); render(); };
+
+  function safeName(name){ return (name || 'shopping-list').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase() || 'shopping-list'; }
+  function downloadText(filename, text, type='text/plain'){
+    const blob=new Blob([text],{type});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+  }
+  function currentListText(){
+    const list=activeList();
+    if(!list) return '';
+    const lines=[];
+    lines.push(list.name);
+    lines.push('Saved: '+new Date().toLocaleString());
+    lines.push('');
+    if(!list.items.length) lines.push('(No items)');
+    list.items.forEach(item=> lines.push((item.done?'[x] ':'[ ] ')+item.text));
+    return lines.join('\n');
+  }
+
+  $('clearAllBtn').onclick=()=>{
+    if(confirm('Clear all shopping lists from this browser?')){ state=defaultState(); render(); }
+  };
+  $('exportBtn').onclick=()=>{
+    downloadText('shopping-lists-'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(state,null,2), 'application/json');
+  };
+  $('saveCurrentBtn').onclick=()=>{
+    const list=activeList(); if(!list) return alert('Create or select a list first.');
+    downloadText(safeName(list.name)+'-'+new Date().toISOString().slice(0,10)+'.txt', currentListText());
+  };
+  $('printBtn').onclick=()=>{
+    if(!activeList()) return alert('Create or select a list first.');
+    window.print();
+  };
+  $('importBtn').onclick=()=> $('importFile').click();
+  $('importFile').onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const incoming=JSON.parse(r.result);
+        if(!incoming || !Array.isArray(incoming.lists)) throw new Error('Invalid file');
+        state=incoming; render(); alert('Shopping lists loaded.');
+      }catch(err){ alert('Could not load this JSON file.'); }
+    };
+    r.readAsText(file); e.target.value='';
+  };
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./sw.js').catch(err=>console.log('Service worker registration failed', err));
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
